@@ -5,10 +5,13 @@ import * as schema from "@shared/schema";
 const { Pool } = pg;
 
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+  console.warn(
+    "DATABASE_URL is not set. Database features will be disabled — running in fallback mode.",
   );
+  // Export placeholders so imports don't throw; callers should guard behavior
+  export const pool = undefined as unknown as typeof Pool;
+  export const db = undefined as unknown;
+} else {
+  export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  export const db = drizzle(pool, { schema });
 }
-
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle(pool, { schema });
