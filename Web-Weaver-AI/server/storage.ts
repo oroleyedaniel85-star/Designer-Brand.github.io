@@ -20,10 +20,11 @@ export interface IStorage {
 // If DATABASE_URL is present we use the real database-backed storage.
 // Otherwise fall back to an in-memory storage so the server can start
 // without a database (useful for static sites and local testing).
+let storageImpl: IStorage;
+
 if (process.env.DATABASE_URL) {
-  // lazy import to keep error messages clear at startup
+  // lazy require to avoid bundling DB client when not needed
   const { db } = require("./db");
-  const { eq } = require("drizzle-orm");
 
   class DatabaseStorage implements IStorage {
     async getServices(): Promise<Service[]> {
@@ -47,7 +48,7 @@ if (process.env.DATABASE_URL) {
     }
   }
 
-  module.exports.storage = new DatabaseStorage();
+  storageImpl = new DatabaseStorage();
 } else {
   // In-memory fallback storage
   class InMemoryStorage implements IStorage {
@@ -77,7 +78,6 @@ if (process.env.DATABASE_URL) {
     }
   }
 
-  // Seed initial data for the in-memory storage so the site shows content.
   const mem = new InMemoryStorage();
   mem.getServices = async () => [
     { id: "1", name: "Graphic Design", description: "Creative visual solutions for your brand identity.", icon: "Palette", category: "graphic" },
@@ -93,6 +93,8 @@ if (process.env.DATABASE_URL) {
     { id: "2", name: "Michael Chen", role: "Founder, GreenSpace", content: "Exceptional attention to detail and creative vision. Highly recommended.", avatarUrl: "https://i.pravatar.cc/150?u=michael" },
   ];
 
-  module.exports.storage = mem;
+  storageImpl = mem;
 }
+
+export const storage = storageImpl;
 
